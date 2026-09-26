@@ -48,9 +48,9 @@ core DevOps practices (containerization, CI, monitoring patterns).
 
 \`\`\`
 PS D:\Programs\log-analyzer> python analyze_logs.py --watch                                        
-210 amount of logs had status requests above 400\ 
+210 amount of logs had status requests above 400\
 / is the path that got hit the most\
-15.6.76.29 is the ip that made the most requests\ 
+15.6.76.29 is the ip that made the most requests\
 Suspicious IPs: []
 
 Watching access.log for new entries... (Ctrl+C to stop)\
