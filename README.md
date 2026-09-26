@@ -4,6 +4,8 @@ A Python CLI tool that parses web server access logs, detects anomalies,
 and can alert in real time, built to learn Python fundamentals alongside 
 core DevOps practices (containerization, CI, monitoring patterns).
 
+[![Test Log Analyzer](https://github.com/LeonidMehandzhijski/LogAnalyzer/actions/workflows/github.yml/badge.svg)](https://github.com/LeonidMehandzhijski/LogAnalyzer/actions/workflows/github.yml)
+
 ## Features
 
 - Parses structured log entries (timestamp, IP, method, path, status)
@@ -46,15 +48,15 @@ core DevOps practices (containerization, CI, monitoring patterns).
 
 \`\`\`
 PS D:\Programs\log-analyzer> python analyze_logs.py --watch                                        
-210 amount of logs had status requests above 400                                
-/ is the path that got hit the most
-15.6.76.29 is the ip that made the most requests
+210 amount of logs had status requests above 400 
+/ is the path that got hit the most 
+15.6.76.29 is the ip that made the most requests 
 Suspicious IPs: []
 
-Watching access.log for new entries... (Ctrl+C to stop)
-ALERT: 500 from 171.59.178.147 on /products
-ALERT: 500 from 6.6.6.6 on /admin
-SUSPICIOUS: 6.6.6.6 made 5 requests within 10s
+Watching access.log for new entries... (Ctrl+C to stop)\
+ALERT: 500 from 171.59.178.147 on /products\
+ALERT: 500 from 6.6.6.6 on /admin\
+SUSPICIOUS: 6.6.6.6 made 5 requests within 10s\
 ALERT: 404 from 6.6.6.6 on /products
 
 Stopped watching.
