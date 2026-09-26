@@ -8,8 +8,9 @@ STATUS_CODES = [200, 200, 200, 301, 404, 403, 500]
 def random_ip():
     return f"{random.randint(1,223)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(0,255)}"
 
-def generate_log_line(timestamp):
-    ip = random_ip()
+def generate_log_line(timestamp, ip=None):
+    if ip is None:
+        ip = random_ip()
     method = random.choice(METHODS)
     path = random.choice(PATHS)
     status = random.choice(STATUS_CODES)

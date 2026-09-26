@@ -1,0 +1,7 @@
+{
+  "error_status_threshold": 400,
+  "sensitive_paths": ["/admin"],
+  "suspicious_ip_request_count": 5,
+  "suspicious_ip_window_seconds": 10,
+  "alert_cooldown_seconds": 5
+}
