@@ -1,8 +1,14 @@
+import argparse
+import json
+import os
+import time
+from datetime import datetime
+
+import requests
 from dotenv import load_dotenv
+
 load_dotenv()
 
-import os
-import requests
 
 def send_discord_alert(message):
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
@@ -10,11 +16,9 @@ def send_discord_alert(message):
         return
     try:
         requests.post(webhook_url, json={"content": message}, timeout=5)
-    except requests.RequestException as e:
-        print("Failed to send Discord alert:", e)
+    except requests.RequestException as error:
+        print("Failed to send Discord alert:", error)
 
-from datetime import datetime
-import time
 
 def watch_file(file_path, config):
     recent_by_ip = {}
@@ -62,7 +66,6 @@ def watch_file(file_path, config):
         except KeyboardInterrupt:
             print("\nStopped watching.")
 
-import argparse
 
 def get_args():
     parser = argparse.ArgumentParser(description="Analyze web server access logs")
@@ -70,37 +73,39 @@ def get_args():
     parser.add_argument("--watch", action="store_true", help="Watch the file for new entries in real time")
     return parser.parse_args()
 
+
 def parse_line(line):
-            clean_line = line.strip()
-            timestamp_str, ip, method, path, status = clean_line.rsplit(" ", 4)
-            status_int = int(status)
-            timestamp_dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-            log_data = {
-                "timestamp": timestamp_dt,
-                "ip": ip,
-                "method": method,
-                "path": path,
-                "status": status_int,
-            }
-            return log_data
+    clean_line = line.strip()
+    timestamp_str, ip, method, path, status = clean_line.rsplit(" ", 4)
+    status_int = int(status)
+    timestamp_dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+    log_data = {
+        "timestamp": timestamp_dt,
+        "ip": ip,
+        "method": method,
+        "path": path,
+        "status": status_int,
+    }
+    return log_data
+
+
 def load_logs(file_path="access.log"):
-    alllogs = []
+    all_logs = []
     with open(file_path, "r") as file:
-        for line_num, line in enumerate(file,1):
-            if line_num > 500:
-                break
+        for line in file:
+
             if not line.strip():
                 continue
 
-            singleline = parse_line(line)
-            alllogs.append(singleline)
-    return alllogs
+            single_line = parse_line(line)
+            all_logs.append(single_line)
+    return all_logs
 
-import json
 
 def load_config(path="config.json"):
     with open(path, "r") as file:
         return json.load(file)
+
 
 def find_suspicious_ips(logs_by_ip, request_threshold, window_seconds):
     suspicious_ips = []
@@ -116,6 +121,7 @@ def find_suspicious_ips(logs_by_ip, request_threshold, window_seconds):
                 break
     return suspicious_ips
 
+
 def main():
     args = get_args()
     config = load_config()
@@ -125,14 +131,17 @@ def main():
     max_status = 0
 
     logs = load_logs(args.file)
-
-    for log in logs:
-        ip = log["ip"]
-        logs_by_ip.setdefault(ip, []).append(log["timestamp"])
-        if log["status"] >= config["error_status_threshold"]:
-            max_status += 1
-        path_counter[log["path"]] = path_counter.get(log["path"], 0) + 1
-        ip_counter[ip] = ip_counter.get(ip, 0) + 1
+    if not logs:
+        print("No logs found.")
+        return
+    else:
+        for log in logs:
+            ip = log["ip"]
+            logs_by_ip.setdefault(ip, []).append(log["timestamp"])
+            if log["status"] >= config["error_status_threshold"]:
+                max_status += 1
+            path_counter[log["path"]] = path_counter.get(log["path"], 0) + 1
+            ip_counter[ip] = ip_counter.get(ip, 0) + 1
 
     suspicious = find_suspicious_ips(
         logs_by_ip,
@@ -151,6 +160,7 @@ def main():
     if args.watch:
         print(f"\nWatching {args.file} for new entries... (Ctrl+C to stop)")
         watch_file(args.file, config)
+
 
 if __name__ == "__main__":
     main()
