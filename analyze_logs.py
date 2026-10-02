@@ -1,111 +1,22 @@
 import argparse
-import json
-import os
-import time
-from datetime import datetime
 
-import requests
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-def send_discord_alert(message):
-    webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
-    if not webhook_url:
-        return
-    try:
-        requests.post(webhook_url, json={"content": message}, timeout=5)
-    except requests.RequestException as error:
-        print("Failed to send Discord alert:", error)
-
-
-def watch_file(file_path, config):
-    recent_by_ip = {}
-    already_alerted = set()
-    last_status_alert = {}
-    cooldown = config.get("alert_cooldown_seconds", 5)
-
-    with open(file_path, "r") as file:
-        file.seek(0, 2)
-        try:
-            while True:
-                line = file.readline()
-                if line == "":
-                    time.sleep(0.5)
-                    continue
-
-                parsed = parse_line(line)
-                ip = parsed["ip"]
-
-                if parsed["status"] >= config["error_status_threshold"]:
-                    last_time = last_status_alert.get(ip)
-                    if last_time is None or (parsed["timestamp"] - last_time).total_seconds() >= cooldown:
-                        msg = f"ALERT: {parsed['status']} from {ip} on {parsed['path']}"
-                        print(msg)
-                        last_status_alert[ip] = parsed["timestamp"]
-
-                recent_by_ip.setdefault(ip, []).append(parsed["timestamp"])
-                window = config["suspicious_ip_window_seconds"]
-                threshold = config["suspicious_ip_request_count"]
-
-                recent_by_ip[ip] = [
-                    t for t in recent_by_ip[ip]
-                    if (parsed["timestamp"] - t).total_seconds() <= window
-                ]
-
-                if len(recent_by_ip[ip]) >= threshold:
-                    if ip not in already_alerted:
-                        msg = f"SUSPICIOUS: {ip} made {len(recent_by_ip[ip])} requests within {window}s"
-                        print(msg)
-                        send_discord_alert(msg)
-                        already_alerted.add(ip)
-                else:
-                    already_alerted.discard(ip)
-
-        except KeyboardInterrupt:
-            print("\nStopped watching.")
-
+from log_utils import load_config, parse_line
 
 def get_args():
     parser = argparse.ArgumentParser(description="Analyze web server access logs")
     parser.add_argument("--file", default="access.log", help="Path to the log file")
-    parser.add_argument("--watch", action="store_true", help="Watch the file for new entries in real time")
+
     return parser.parse_args()
-
-
-def parse_line(line):
-    clean_line = line.strip()
-    timestamp_str, ip, method, path, status = clean_line.rsplit(" ", 4)
-    status_int = int(status)
-    timestamp_dt = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
-    log_data = {
-        "timestamp": timestamp_dt,
-        "ip": ip,
-        "method": method,
-        "path": path,
-        "status": status_int,
-    }
-    return log_data
-
 
 def load_logs(file_path="access.log"):
     all_logs = []
     with open(file_path, "r") as file:
         for line in file:
-
             if not line.strip():
                 continue
-
             single_line = parse_line(line)
             all_logs.append(single_line)
     return all_logs
-
-
-def load_config(path="config.json"):
-    with open(path, "r") as file:
-        return json.load(file)
-
 
 def find_suspicious_ips(logs_by_ip, request_threshold, window_seconds):
     suspicious_ips = []
@@ -121,30 +32,21 @@ def find_suspicious_ips(logs_by_ip, request_threshold, window_seconds):
                 break
     return suspicious_ips
 
-
-def main():
-    args = get_args()
-    config = load_config()
-    path_counter = {}
+def summarize_logs(logs, config):
     ip_counter = {}
     logs_by_ip = {}
-    max_status = 0
+    error_count = 0
+    path_counter = {}
+    for log in logs:
+        ip = log["ip"]
+        logs_by_ip.setdefault(ip, []).append(log["timestamp"])
+        if log["status"] >= config["error_status_threshold"]:
+            error_count += 1
+        path_counter[log["path"]] = path_counter.get(log["path"], 0) + 1
+        ip_counter[ip] = ip_counter.get(ip, 0) + 1
 
-    logs = load_logs(args.file)
-    if not logs:
-        print("No logs found.")
-        return
-    else:
-        for log in logs:
-            ip = log["ip"]
-            logs_by_ip.setdefault(ip, []).append(log["timestamp"])
-            if log["status"] >= config["error_status_threshold"]:
-                max_status += 1
-            path_counter[log["path"]] = path_counter.get(log["path"], 0) + 1
-            ip_counter[ip] = ip_counter.get(ip, 0) + 1
-
-    suspicious = find_suspicious_ips(
-        logs_by_ip,
+    suspicious_ips = find_suspicious_ips(
+         logs_by_ip,
         config["suspicious_ip_request_count"],
         config["suspicious_ip_window_seconds"],
     )
@@ -152,15 +54,28 @@ def main():
     most_used_path = max(path_counter, key=path_counter.get)
     most_used_ip = max(ip_counter, key=ip_counter.get)
 
-    print(max_status, "amount of logs had status requests above 400")
-    print(most_used_path, "is the path that got hit the most")
-    print(most_used_ip, "is the ip that made the most requests")
-    print("Suspicious IPs:", suspicious)
+    return {
+        "error_count": error_count,
+        "most_used_path": most_used_path,
+        "most_used_ip": most_used_ip,
+        "suspicious_ips": suspicious_ips,
+    }
 
-    if args.watch:
-        print(f"\nWatching {args.file} for new entries... (Ctrl+C to stop)")
-        watch_file(args.file, config)
+def main():
+    args = get_args()
+    config = load_config()
 
+    logs = load_logs(args.file)
+    if not logs:
+        print("No logs found.")
+        return
+
+    summary = summarize_logs(logs, config)
+
+    print(summary["error_count"], "amount of logs had status requests greater than or equal to ", config["error_status_threshold"])
+    print(summary["most_used_path"], "is the path that got hit the most")
+    print(summary["most_used_ip"], "is the ip that made the most requests")
+    print("Suspicious IPs:", summary["suspicious_ips"])
 
 if __name__ == "__main__":
     main()

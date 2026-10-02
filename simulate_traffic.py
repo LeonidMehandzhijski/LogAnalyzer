@@ -1,6 +1,7 @@
-import time
 import random
+import time
 from datetime import datetime
+
 from generate_logs import generate_log_line
 
 SUSPICIOUS_IP = "6.6.6.6"
