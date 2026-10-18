@@ -67,11 +67,18 @@ Secondly it watches the live traffic.
 
 ## What I learned building this
 
-[
+Note #1
 This was my first journey into Python. 
 The language is definitely way different from what I am usually used to...
 I've been dealing with C++ and Java at my faculty, privately mostly I've been using TS. It was fun albeit it causing frustrations at time.
 Getting used to not typing ; at the end of every line is weird.
 It is also the start of my DevOps journey. I used Claude as a teacher to guide me through and shepherd me in a way through the code.
 It was all hand written right now as I want to get a grasp of Python before delving into AI assisted coding.
-]
+
+Note #2
+After stepping back and looking at the project again, I decided to clean up instead of focusing on adding new features.
+I separated the code and made monitor_logs that does just what the name implies. Monitors the log as simulate_traffic makes it directly in the CLI.
+Simulate traffic also writes all this down into access.log, then using analyze_logs it gives us a summary of requests amounts what path got hit the most etc.
+I also learned something new along the way, unit tests!
+Something you always hear about. This is the first time I've practically used them for one of my projects and I'm not sure how I haven't used it till now...
+Next step is probably making a place to display everything to be more readable, probably using Flask on a webpage.
