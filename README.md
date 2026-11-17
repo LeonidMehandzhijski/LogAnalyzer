@@ -73,7 +73,7 @@ The language is definitely way different from what I am usually used to...
 I've been dealing with C++ and Java at my faculty, privately mostly I've been using TS. It was fun albeit it causing frustrations at time.
 Getting used to not typing ; at the end of every line is weird.
 It is also the start of my DevOps journey. I used Claude as a teacher to guide me through and shepherd me in a way through the code.
-It was all hand written right now as I want to get a grasp of Python before delving into AI assisted coding.
+It was all hand written right now as I want to get a grasp of Python before delving into AI assisted coding. Claude was used for code review and just as a architectural guide through the whole process.
 
 Note #2
 After stepping back and looking at the project again, I decided to clean up instead of focusing on adding new features.
